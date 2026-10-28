@@ -168,15 +168,10 @@ function CinematicBackdrop() {
 }
 
 function App() {
-  const [showIntro, setShowIntro] = useState(() => {
-    try {
-      return !new URLSearchParams(window.location.search).has('dashboard') && sessionStorage.getItem('datascope-intro-seen') !== 'yes'
-    } catch { return !new URLSearchParams(window.location.search).has('dashboard') }
-  })
+  const [showIntro, setShowIntro] = useState(() => !new URLSearchParams(window.location.search).has('dashboard'))
   const [introMotion, setIntroMotion] = useState(() => !window.matchMedia('(prefers-reduced-motion: reduce)').matches)
   const dismissIntro = () => {
     setShowIntro(false)
-    try { sessionStorage.setItem('datascope-intro-seen', 'yes') } catch { /* Intro remains dismissible without storage. */ }
   }
   const inputRef = useRef<HTMLInputElement>(null)
   const uploadVersion = useRef(0)
@@ -438,16 +433,7 @@ function App() {
   if (showIntro) return <div className="intro-shell" data-motion={introMotion ? 'on' : 'off'}>
     <a className="intro-skip" href="#workspace" onClick={(event) => { event.preventDefault(); dismissIntro() }}>Skip intro <span aria-hidden="true">↗</span></a>
     <div className="intro-web" aria-hidden="true" />
-    <div className="intro-swing-scene">
-      <CinematicBackdrop />
-      <img
-        className="intro-spider-image"
-        src="https://images.wallpapersden.com/image/download/marvels-spider-man-hd-gaming-2022_bWlqZmWUmZqaraWkpJRnamtlrWZra2k.jpg"
-        alt="Spider-Man swinging between New York City buildings"
-        fetchPriority="high"
-      />
-      <a className="intro-image-credit" href="https://wallpapersden.com/marvels-spider-man-hd-gaming-2022-wallpaper/2560x1664/" target="_blank" rel="noreferrer">Spider-Man image · Wallpapers Den</a>
-    </div>
+    <div className="intro-swing-scene" aria-hidden="true"><CinematicBackdrop /></div>
     <main className="intro-content" aria-labelledby="intro-title">
       <div className="intro-kicker"><span /> DATASCOPE <i>·</i> A NEW WAY TO SEE YOUR DATA</div>
       <h1 id="intro-title">Your Data.<br /><em>Your Universe.</em></h1>
