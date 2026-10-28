@@ -168,6 +168,16 @@ function CinematicBackdrop() {
 }
 
 function App() {
+  const [showIntro, setShowIntro] = useState(() => {
+    try {
+      return !new URLSearchParams(window.location.search).has('dashboard') && sessionStorage.getItem('datascope-intro-seen') !== 'yes'
+    } catch { return !new URLSearchParams(window.location.search).has('dashboard') }
+  })
+  const [introMotion, setIntroMotion] = useState(() => !window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+  const dismissIntro = () => {
+    setShowIntro(false)
+    try { sessionStorage.setItem('datascope-intro-seen', 'yes') } catch { /* Intro remains dismissible without storage. */ }
+  }
   const inputRef = useRef<HTMLInputElement>(null)
   const uploadVersion = useRef(0)
   const [dataset, setDataset] = useState<Dataset | null>(null)
@@ -425,7 +435,31 @@ function App() {
   const kindIcon = (kind: ColumnKind) => kind === 'Numeric' ? <Activity size={13} /> : kind === 'Date' ? <CalendarDays size={13} /> : <Database size={13} />
   const distinctValues = filterColumn && dataset ? Array.from(new Set(dataset.rows.map((r) => r[filterColumn]).filter(Boolean))).slice(0, 100) : []
 
-  return <div className={`dashboard-shell${spiderAnimation ? '' : ' no-spider-animation'}`} data-theme={theme}>
+  if (showIntro) return <div className="intro-shell" data-motion={introMotion ? 'on' : 'off'}>
+    <a className="intro-skip" href="#workspace" onClick={(event) => { event.preventDefault(); dismissIntro() }}>Skip intro <span aria-hidden="true">↗</span></a>
+    <div className="intro-web" aria-hidden="true" />
+    <div className="intro-swing-scene">
+      <CinematicBackdrop />
+      <img
+        className="intro-spider-image"
+        src="https://images.wallpapersden.com/image/download/marvels-spider-man-hd-gaming-2022_bWlqZmWUmZqaraWkpJRnamtlrWZra2k.jpg"
+        alt="Spider-Man swinging between New York City buildings"
+        fetchPriority="high"
+      />
+      <a className="intro-image-credit" href="https://wallpapersden.com/marvels-spider-man-hd-gaming-2022-wallpaper/2560x1664/" target="_blank" rel="noreferrer">Spider-Man image · Wallpapers Den</a>
+    </div>
+    <main className="intro-content" aria-labelledby="intro-title">
+      <div className="intro-kicker"><span /> DATASCOPE <i>·</i> A NEW WAY TO SEE YOUR DATA</div>
+      <h1 id="intro-title">Your Data.<br /><em>Your Universe.</em></h1>
+      <p className="intro-subtitle">Turn raw CSV files into meaningful insights in seconds.</p>
+      <div className="intro-actions"><button className="intro-primary" onClick={dismissIntro}>Start Exploring <span aria-hidden="true">→</span></button><a className="intro-secondary" href="#how-it-works">How It Works <span aria-hidden="true">↓</span></a></div>
+      <div className="intro-footnote"><span className="intro-pulse" /> YOUR DATA STAYS YOURS <span className="intro-foot-divider" /> ANALYZE LOCALLY IN YOUR BROWSER</div>
+    </main>
+    <section className="intro-how" id="how-it-works" aria-labelledby="how-title"><div className="intro-how-inner"><p className="intro-kicker">THREE STEPS. CLEARER SIGNAL.</p><h2 id="how-title">From raw rows to a clearer picture.</h2><div className="intro-steps"><article><b>01</b><h3>Bring your CSV</h3><p>Drop in a file or choose one from your device.</p></article><article><b>02</b><h3>See the shape</h3><p>Get a quick read on column types, gaps, and data quality.</p></article><article><b>03</b><h3>Find your insight</h3><p>Explore generated charts and filter the rows that matter.</p></article></div><button className="intro-primary" onClick={dismissIntro}>Start Exploring <span aria-hidden="true">→</span></button></div></section>
+    <button className="intro-motion-toggle" aria-pressed={!introMotion} onClick={() => setIntroMotion((motion) => !motion)}>{introMotion ? 'Pause motion' : 'Play motion'}</button>
+  </div>
+
+  return <div id="workspace" className={`dashboard-shell${spiderAnimation ? '' : ' no-spider-animation'}`} data-theme={theme}>
     <CinematicBackdrop />
     <aside className="sidebar"><a className="brand" href="#"><span className="brand-symbol"><BarChart3 size={19} /></span><span>Data<span className="brand-light">scope</span></span></a>
       <div className="side-caption">WORKSPACE</div><button className="side-link active"><LayoutDashboard size={17} /> Overview</button><button className="side-link" onClick={() => document.getElementById('preview')?.scrollIntoView({ behavior: 'smooth' })}><Table2 size={17} /> Data preview</button>
