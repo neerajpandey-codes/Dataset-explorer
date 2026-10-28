@@ -4,6 +4,7 @@ import { Activity, BarChart3, CalendarDays, Check, ChevronDown, CircleAlert, Clo
 import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { getDashboardRecord, saveDashboardRecord, supabaseConfigured } from './supabase'
 import DataQuality from './DataQuality'
+import IntroLanding from './IntroLanding'
 
 type Row = Record<string, string>
 type ColumnKind = 'Numeric' | 'Date' | 'Categorical'
@@ -168,16 +169,6 @@ function CinematicBackdrop() {
 }
 
 function App() {
-  const [showIntro, setShowIntro] = useState(() => {
-    try {
-      return !new URLSearchParams(window.location.search).has('dashboard') && sessionStorage.getItem('datascope-intro-seen') !== 'yes'
-    } catch { return !new URLSearchParams(window.location.search).has('dashboard') }
-  })
-  const [introMotion, setIntroMotion] = useState(() => !window.matchMedia('(prefers-reduced-motion: reduce)').matches)
-  const dismissIntro = () => {
-    setShowIntro(false)
-    try { sessionStorage.setItem('datascope-intro-seen', 'yes') } catch { /* Intro remains dismissible without storage. */ }
-  }
   const inputRef = useRef<HTMLInputElement>(null)
   const uploadVersion = useRef(0)
   const [dataset, setDataset] = useState<Dataset | null>(null)
@@ -194,6 +185,8 @@ function App() {
   const [filterValue, setFilterValue] = useState('')
   const [theme, setTheme] = useState<Theme>(readTheme)
   const [spiderAnimation, setSpiderAnimation] = useState(readAnimation)
+  // Shared links should retain their direct-to-dashboard behavior rather than stopping at the intro.
+  const [showIntro, setShowIntro] = useState(() => !new URLSearchParams(window.location.search).has('dashboard'))
 
   useEffect(() => {
     try { localStorage.setItem('datascope-theme', theme) } catch { /* Keep theme usable when storage is unavailable. */ }
@@ -435,31 +428,9 @@ function App() {
   const kindIcon = (kind: ColumnKind) => kind === 'Numeric' ? <Activity size={13} /> : kind === 'Date' ? <CalendarDays size={13} /> : <Database size={13} />
   const distinctValues = filterColumn && dataset ? Array.from(new Set(dataset.rows.map((r) => r[filterColumn]).filter(Boolean))).slice(0, 100) : []
 
-  if (showIntro) return <div className="intro-shell" data-motion={introMotion ? 'on' : 'off'}>
-    <a className="intro-skip" href="#workspace" onClick={(event) => { event.preventDefault(); dismissIntro() }}>Skip intro <span aria-hidden="true">↗</span></a>
-    <div className="intro-web" aria-hidden="true" />
-    <div className="intro-swing-scene">
-      <CinematicBackdrop />
-      <img
-        className="intro-spider-image"
-        src="https://images.wallpapersden.com/image/download/marvels-spider-man-hd-gaming-2022_bWlqZmWUmZqaraWkpJRnamtlrWZra2k.jpg"
-        alt="Spider-Man swinging between New York City buildings"
-        fetchPriority="high"
-      />
-      <a className="intro-image-credit" href="https://wallpapersden.com/marvels-spider-man-hd-gaming-2022-wallpaper/2560x1664/" target="_blank" rel="noreferrer">Spider-Man image · Wallpapers Den</a>
-    </div>
-    <main className="intro-content" aria-labelledby="intro-title">
-      <div className="intro-kicker"><span /> DATASCOPE <i>·</i> A NEW WAY TO SEE YOUR DATA</div>
-      <h1 id="intro-title">Your Data.<br /><em>Your Universe.</em></h1>
-      <p className="intro-subtitle">Turn raw CSV files into meaningful insights in seconds.</p>
-      <div className="intro-actions"><button className="intro-primary" onClick={dismissIntro}>Start Exploring <span aria-hidden="true">→</span></button><a className="intro-secondary" href="#how-it-works">How It Works <span aria-hidden="true">↓</span></a></div>
-      <div className="intro-footnote"><span className="intro-pulse" /> YOUR DATA STAYS YOURS <span className="intro-foot-divider" /> ANALYZE LOCALLY IN YOUR BROWSER</div>
-    </main>
-    <section className="intro-how" id="how-it-works" aria-labelledby="how-title"><div className="intro-how-inner"><p className="intro-kicker">THREE STEPS. CLEARER SIGNAL.</p><h2 id="how-title">From raw rows to a clearer picture.</h2><div className="intro-steps"><article><b>01</b><h3>Bring your CSV</h3><p>Drop in a file or choose one from your device.</p></article><article><b>02</b><h3>See the shape</h3><p>Get a quick read on column types, gaps, and data quality.</p></article><article><b>03</b><h3>Find your insight</h3><p>Explore generated charts and filter the rows that matter.</p></article></div><button className="intro-primary" onClick={dismissIntro}>Start Exploring <span aria-hidden="true">→</span></button></div></section>
-    <button className="intro-motion-toggle" aria-pressed={!introMotion} onClick={() => setIntroMotion((motion) => !motion)}>{introMotion ? 'Pause motion' : 'Play motion'}</button>
-  </div>
+  if (showIntro) return <IntroLanding onEnter={() => setShowIntro(false)} />
 
-  return <div id="workspace" className={`dashboard-shell${spiderAnimation ? '' : ' no-spider-animation'}`} data-theme={theme}>
+  return <div className={`dashboard-shell${spiderAnimation ? '' : ' no-spider-animation'}`} data-theme={theme}>
     <CinematicBackdrop />
     <aside className="sidebar"><a className="brand" href="#"><span className="brand-symbol"><BarChart3 size={19} /></span><span>Data<span className="brand-light">scope</span></span></a>
       <div className="side-caption">WORKSPACE</div><button className="side-link active"><LayoutDashboard size={17} /> Overview</button><button className="side-link" onClick={() => document.getElementById('preview')?.scrollIntoView({ behavior: 'smooth' })}><Table2 size={17} /> Data preview</button>
@@ -467,8 +438,8 @@ function App() {
     </aside>
     <main className="main-content"><header className="topbar"><div className="crumb"><span>Workspace</span><span>/</span><b>Dataset explorer</b></div><div className="top-meta"><label className="theme-control"><Palette size={14} /><span className="sr-only">Choose dashboard theme</span><select aria-label="Choose dashboard theme" value={theme} onChange={(event) => setTheme(event.target.value as Theme)}><option value="light">Light</option><option value="dark">Dark</option><option value="spider">Spider-Man</option></select></label>{theme === 'spider' && <button className="animation-toggle" type="button" aria-pressed={spiderAnimation} onClick={() => setSpiderAnimation((enabled) => !enabled)} title={`${spiderAnimation ? 'Turn off' : 'Turn on'} Spider-Man background animation`}>{spiderAnimation ? <Pause size={13} /> : <Play size={13} />}<span>Motion {spiderAnimation ? 'on' : 'off'}</span></button>}<span className="local-badge"><i /> {supabaseConfigured ? 'SUPABASE CONFIGURED' : 'LOCAL ONLY'}</span><span className="top-divider" /><span className="avatar">L</span></div></header>
       <div className="content-wrap"><div className="page-title-row"><div><div className="eyebrow"><i /> DATA WORKSPACE</div><h1>Dataset explorer<span>.</span></h1><p className="subtitle">Get a clear picture of your data, in seconds.</p></div><div className="page-actions">{dataset && <button className="share-button" onClick={saveOrCopyDashboard} disabled={!supabaseConfigured || saving} title={!supabaseConfigured ? 'Set VITE_SUPABASE_URL and a publishable or anon key to enable saving.' : ''}><CloudUpload size={15} />{saving ? 'Saving…' : dashboardId ? 'Copy share link' : supabaseConfigured ? 'Save & share' : 'Cloud setup required'}</button>}<button className="upload-button" onClick={() => inputRef.current?.click()} disabled={busy || saving}><Upload size={16} /> {busy ? busyMessage : dataset ? 'Upload new CSV' : 'Upload a CSV'}<input ref={inputRef} type="file" accept=".csv,text/csv" onChange={onInput} /></button></div></div>
-        {!dataset && <div className={`dropzone ${dragging ? 'dragging' : ''}`} onDragOver={(e) => { e.preventDefault(); setDragging(true) }} onDragLeave={() => setDragging(false)} onDrop={onDrop}>
-          {busy ? <div className="loader" /> : <span className="drop-icon"><FileUp size={23} /></span>}<h2>{busy ? busyMessage : 'Drop your CSV here'}</h2><p>or choose a file from your device. Your data stays private unless you save it.</p><button className="browse-button" onClick={() => inputRef.current?.click()} disabled={busy}>Browse files</button><small>CSV files · Any size that fits in your browser</small>
+        {!dataset && <div className={`dropzone ${dragging ? 'dragging' : ''}`} aria-busy={busy} onDragOver={(e) => { e.preventDefault(); setDragging(true) }} onDragLeave={() => setDragging(false)} onDrop={onDrop}>
+          {busy ? <div className="loader" role="status" aria-label={busyMessage} /> : <span className="drop-icon"><FileUp size={23} /></span>}<p className="upload-eyebrow">ANALYZE A DATASET</p><h2>{busy ? busyMessage : 'Drop your CSV here'}</h2><p>Upload a file to inspect its structure, quality, and trends. It stays private unless you choose to save it.</p><button className="browse-button" onClick={() => inputRef.current?.click()} disabled={busy}>Browse files</button><div className="upload-steps" aria-hidden="true"><span>1. Upload</span><i /> <span>2. Analyze</span><i /> <span>3. Explore</span></div><small>CSV files · Any size that fits in your browser</small>
         </div>}
         {error && <div className="error-banner" role="alert"><CircleAlert size={17} /><span>{error}</span><button onClick={() => setError('')} aria-label="Dismiss error"><X size={15} /></button></div>}
         {dataset && <>
